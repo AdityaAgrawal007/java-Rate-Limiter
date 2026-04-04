@@ -4,30 +4,39 @@ import com.cerberus.rateLimiter.core.RateLimiter;
 import com.cerberus.rateLimiter.core.RateLimiterImpl;
 import com.cerberus.rateLimiter.extractor.IpKeyExtractor;
 import com.cerberus.rateLimiter.interceptor.RateLimitInterceptor;
-import com.cerberus.rateLimiter.store.InMemoryStateStore;
+import com.cerberus.rateLimiter.store.RedisStateStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.IOException;
 import java.time.Duration;
 
 @Configuration
 public class RateLimiterConfig implements WebMvcConfigurer {
 
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
     @Bean
-    public RateLimiter rateLimiter() {
-        return new RateLimiterImpl(10, Duration.ofMinutes(1), new InMemoryStateStore());
+    public RateLimiter rateLimiter() throws IOException {
+        return new RateLimiterImpl(10, Duration.ofMinutes(1), new RedisStateStore(redisTemplate));
     }
 
     @Bean
-    public RateLimitInterceptor rateLimitInterceptor() {
+    public RateLimitInterceptor rateLimitInterceptor() throws IOException {
         return new RateLimitInterceptor(rateLimiter(), new IpKeyExtractor());
     }
 
-    // this method register interceptor with spring, and hence every incomming request is passed to interceptor
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(rateLimitInterceptor());
+        try {
+            registry.addInterceptor(rateLimitInterceptor());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

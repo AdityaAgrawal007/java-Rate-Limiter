@@ -12,7 +12,7 @@ public class RateLimiterImpl implements RateLimiter{
     private Duration timeWindow;
     private StateStore store;
 
-    RateLimiterImpl(long tokenLimit, Duration timeWindow, StateStore store) {
+    public RateLimiterImpl(long tokenLimit, Duration timeWindow, StateStore store) {
         this.tokenLimit = tokenLimit;
         this.timeWindow = timeWindow;
         this.store = store;
